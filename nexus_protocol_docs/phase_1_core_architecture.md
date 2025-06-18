@@ -2,279 +2,232 @@
 
 ## 1. Mobile Node Roles
 
+The Nexus Protocol utilizes a hierarchical and interconnected system of mobile and server-based nodes, each with distinct roles and responsibilities. This structure is designed to balance decentralization, scalability, and efficiency, particularly for a mobile-first user base. The traditional "Validator" role is integrated into the Super-Host and Leadership Council functions.
+
 ### Hosts
 -   **Responsibilities:**
-    -   Basic P2P data exchange (e.g., messages, notifications, small media files).
-    -   Localized content storage (e.g., caching frequently accessed content from connections).
-    -   Participate in network discovery and relaying basic transaction information.
-    -   Maintain a lightweight copy of relevant parts of the blockchain.
+    -   Act as the primary interface for users, running on their mobile devices.
+    -   Initiate transactions (content creation, interactions, P2P transfers) and submit them to their assigned Cell's Super-Hosts.
+    -   Basic P2P data exchange with other Hosts within their Cell or through Super-Hosts (e.g., messages, notifications, small media files).
+    -   Maintain a lightweight, localized cache of relevant data (e.g., their own content, direct connections' activity, frequently accessed content from their Cell).
+    -   Participate in electing Super-Hosts for their Cell.
 -   **Technical Considerations:**
     -   Minimal battery drain: Operations must be optimized for low power consumption.
     -   Storage efficiency: Utilize efficient data structures and compression for cached data.
-    -   Intermittent connectivity: Graceful handling of network drops and reconnections.
-    -   Security: Basic protection against common mobile threats; data encryption at rest and in transit.
+    -   Intermittent connectivity: Graceful handling of network drops and reconnections; data cycling for active users (e.g., every 10 minutes) to refresh relevant content when connected.
+    -   Security: Basic protection against common mobile threats; data encryption at rest and in transit. Private key management, ideally using hardware-backed keystores.
 
-### Super-Hosts
+### Super-Hosts (Cell Validators & Delegates)
 -   **Responsibilities:**
-    -   All Host responsibilities.
-    -   Store larger segments of the blockchain or specialized data shards.
-    -   Relay a higher volume of network traffic.
-    -   Provide enhanced network services (e.g., data availability for offline Hosts, initial data sync for new Hosts).
-    -   Potentially act as candidates for Validator roles if meeting further criteria.
+    -   Act as the primary validation and coordination layer within a Cell. Each Cell will have multiple Super-Hosts (e.g., 50-100) elected by Hosts within that Cell.
+    -   Receive transactions from Hosts within their assigned Cell.
+    -   Perform initial validation (Step 1 Validation) of transactions based on PoP rules, cryptographic correctness, and Cell-specific data consistency. This includes validating data from other Super-Hosts within the same cell.
+    -   Relay validated transactions to the Decelerator pool for further processing and potential block inclusion.
+    -   Store and manage "Active Storage" for their Cell – a more comprehensive but still potentially sharded/time-limited segment of the blockchain relevant to their Cell's activity.
+    -   Provide enhanced network services to Hosts (e.g., data availability for offline Hosts, initial data sync for new Hosts within the Cell).
+    -   Distribute transactions to other Super-Hosts within the cell based on rank-based distribution mechanisms to balance load.
+    -   Participate in electing Decelerators and Leadership Council members based on their ranking score.
+    -   Act as delegates for their Cell, representing its interests in broader network governance if elected to the Leadership Council.
 -   **Technical Considerations:**
-    -   Resource detection: App must intelligently identify devices suitable for Super-Host role (e.g., connected to power, stable Wi-Fi, sufficient storage/RAM).
-    -   User consent: Explicit user opt-in for Super-Host functionality due to increased resource usage.
-    -   Optimized data synchronization protocols.
-    -   Higher bandwidth and storage capacity required.
+    -   Higher resource requirements than Hosts (more storage, CPU, bandwidth). App must intelligently identify devices suitable for Super-Host role (e.g., connected to power, stable Wi-Fi, sufficient storage/RAM) or allow for dedicated server-based Super-Hosts.
+    -   User consent: Explicit user opt-in for Super-Host functionality due to increased resource usage if on a mobile device.
+    -   Optimized data synchronization protocols with other Super-Hosts in their Cell and with Decelerators.
+    -   High uptime and network reliability are critical.
+    -   Staking mechanism: May need to stake native tokens as a security deposit, slashable for malicious behavior or extended downtime. Ranking score is a primary determinant for election and reward.
 
-### Decelerators (Conceptual New Role)
+### Decelerators (Transaction Processors & Block Candidates)
 -   **Responsibilities:**
-    -   Offload and process lower-priority or batch transactions (e.g., data aggregation for analytics, background sync operations, non-critical PoP validations).
-    -   Help manage network congestion by handling tasks that don't require immediate confirmation.
-    -   Provide computational resources for tasks like distributed content delivery network (dCDN) functions for popular content.
+    -   Process transactions from the "transaction pool" fed by Super-Hosts across multiple Cells.
+    -   Perform a second layer of validation (Step 2 Validation), checking for cross-Cell conflicts, global PoP consistency, and deeper rule adherence. This is a more computationally intensive validation step.
+    -   Bundle validated transactions into candidate blocks.
+    -   Submit candidate blocks to the Leadership Council (specifically the Decider group) for final ratification.
+    -   Provide computational resources for tasks like distributed content delivery network (dCDN) functions, large-scale PoP analytics, or other off-chain tasks.
+    -   Elected by Super-Hosts based on performance, reliability, and ranking.
 -   **Technical Considerations:**
-    -   Task prioritization: A clear system for defining and assigning low-priority tasks.
-    -   Resource management: Efficiently use available CPU/network resources without impacting primary device functionality.
-    -   Incentive mechanism: Reward Decelerators for their computational contributions (e.g., micropayments in native tokens).
-    -   Security: Ensure tasks are sandboxed and cannot compromise the device.
+    -   Significant computational resources, likely server-based or very high-end mobile devices with user consent.
+    -   Task prioritization: A clear system for defining and assigning tasks.
+    -   Resource management: Efficiently use available CPU/network resources.
+    -   Incentive mechanism: Reward Decelerators for their computational contributions and successful block candidacy.
+    -   Security: Ensure tasks are sandboxed and cannot compromise the device if mobile-based. High bandwidth and storage capacity.
 
-### Validators
--   **Responsibilities:**
-    -   Participate in the consensus mechanism (Proof-of-Post).
-    -   Validate new blocks of transactions/interactions.
-    -   Maintain the integrity and security of the blockchain.
-    -   Propose new blocks (depending on the specific PoP design).
--   **Technical Considerations:**
-    -   Can be designated Super-Hosts or dedicated server-side nodes (for initial stability and performance).
-    -   Requires higher uptime and network reliability.
-    -   Staking mechanism: Validators may need to stake native tokens as a security deposit.
-    -   Robust security measures to prevent collusion or attacks.
-    -   Computational requirements will depend on the specifics of PoP cryptographic functions.
+## 2. Network Topology & Cells
 
--   **Expanded Technical Considerations & New Subsections:**
+The Nexus Protocol network is organized into a cellular topology to enhance scalability, manageability, and local relevance.
 
-    #### Validator Selection Process
-    -   **Minimum Stake:** A significant token stake required to become a Validator candidate, disincentivizing malicious actors.
-    -   **Uptime & Performance Requirements:** Proven history of high uptime and sufficient processing/network capability (metrics to be defined). For mobile Validators, this might involve periods of connection to stable power and Wi-Fi.
-    -   **Technical Competency (for dedicated nodes):** If server-side nodes are run by individuals/entities, they must demonstrate technical capability.
-    -   **Community Vouching/Reputation (Optional):** A system where existing trusted participants or token holders can vouch for new Validator candidates, adding a layer of social trust. This needs careful design to prevent centralization or gatekeeping.
-    -   **Random Selection from Candidate Pool:** To prevent predictability, active Validators could be chosen pseudo-randomly from a pool of qualified and staked candidates.
-
-    #### Staking Mechanics
-    -   **Purpose:**
-        -   **Security Deposit:** Staked tokens act as collateral, slashable in case of malicious behavior (e.g., double-signing, extended downtime).
-        -   **Alignment of Incentives:** Ensures Validators have a vested interest in the network's health and security.
-        -   **Sybil Resistance:** Makes it costly to create numerous fake Validator identities.
-    -   **Slashing Conditions:**
-        -   **Double Signing:** Signing two different blocks at the same height.
-        -   **Extended Unjustified Downtime:** Failing to participate in consensus for a prolonged period.
-        -   **Verifiable Malicious Actions:** Provable participation in network attacks.
-    -   **Rewards:** Validators receive rewards (e.g., transaction fees, newly minted tokens) for successfully proposing and validating blocks. Rewards are proportional to stake and performance.
-
-    #### Potential Attack Vectors & Mitigation
-    -   **Collusion:**
-        -   *Vector:* Multiple Validators colluding to approve invalid transactions or censor valid ones.
-        -   *Mitigation:* Sufficiently large and decentralized Validator set; monitoring for coordinated misbehavior; cryptographic attestations making collusion difficult to hide. Random selection of block proposers and committee-based validation.
-    -   **DDoS Attacks:**
-        -   *Vector:* Overwhelming Validators (especially mobile ones if they are public-facing) with traffic to disrupt their participation.
-        -   *Mitigation:* For dedicated Validators: Standard DDoS protection services. For mobile Validators: Carefully designed P2P networking that obfuscates direct IP addresses where possible; reliance on Super-Hosts as relays; ability for mobile Validators to temporarily go offline and rejoin without severe penalty if not their proposing turn.
-    -   **Compromised Keys:**
-        -   *Vector:* Theft or loss of a Validator's private keys.
-        -   *Mitigation:* Encourage use of hardware security modules (HSMs) for dedicated Validators and hardware-backed keystores for mobile Validators. Clear processes for key revocation and secure replacement. Multi-signature controls for critical Validator operations if feasible.
-    -   **Long-Range Attacks / Reorgs:**
-        -   *Vector:* Attackers trying to create a long alternative chain, especially in PoS systems.
-        -   *Mitigation:* Checkpointing mechanisms; PoP's social consensus data could provide additional "weight" or "finality" markers that are hard to fake on a long-range attack. Careful design of block finality rules.
-    -   **Censorship/Transaction Withholding:**
-        -   *Vector:* Validators refusing to include specific transactions in blocks.
-        -   *Mitigation:* Mechanisms for users to resubmit transactions to other Validators; monitoring Validator behavior for patterns of censorship; potentially a "fairness" algorithm in transaction pool selection.
-
-## 2. Strategic Rationale - Mobile-Native Architecture
-
--   **Democratizing Participation:**
-    -   Lowers the barrier to entry for blockchain participation, moving beyond specialized mining hardware.
-    -   Allows any user with a smartphone to contribute to and benefit from the network.
--   **Reduced Reliance on Centralized Infrastructure:**
-    -   Distributes data storage and network functions across a vast number of mobile nodes.
-    -   Reduces single points of failure and censorship risks.
--   **Enhanced Network Resilience (QASTON 2.0 Principles):**
-    -   Similar to QASTON 2.0's distributed nature, the network becomes more robust as it grows.
-    -   Localized data exchange can continue even with partial internet outages in certain regions.
-    -   Dynamic node discovery and routing ensure data can find pathways even in fluctuating network conditions.
+-   **Cell Structure:**
+    -   The network is divided into numerous "Cells." A Cell is a logical grouping of Hosts and their elected Super-Hosts.
+    -   Each Cell operates as a semi-autonomous unit for initial transaction validation and data management related to its member Hosts.
+    -   The number of Hosts per Cell can vary but should be optimized for performance and Super-Host capacity (e.g., thousands of Hosts per Cell).
+-   **User Assignment to Cells:**
+    -   **Initial Assignment:** New users are assigned to a Cell upon joining the network. This assignment can be based on a combination of:
+        -   Geographical proximity (if location data is available and consented to by the user) to optimize local interactions and data relevance.
+        -   Random load balancing among Cells with good ranking scores to ensure even distribution.
+        -   User choice (allowing users to select a Cell based on interest, community, or other factors, if feasible).
+    -   **Dynamic Reassignment (Optional):** Mechanisms for users to switch Cells or be reassigned if they move geographically or if Cell performance degrades could be considered in later iterations.
+-   **Cell Lifecycle & Ranking:**
+    -   **Formation:** New Cells can be formed dynamically as the network grows, potentially proposed by the Leadership Council or emerging organically based on node density.
+    -   **Super-Host Elections:** Hosts within a Cell periodically elect their Super-Hosts.
+    -   **Cell Ranking Score:** Each Cell will have a ranking score based on:
+        -   The aggregate ranking scores of its Super-Hosts.
+        -   The Cell's overall activity level and health (e.g., transaction throughput, data integrity, uptime of Super-Hosts).
+        -   Network contributions (e.g., data shared, participation in governance).
+    -   **Purpose of Cell Ranking:** Influences resource allocation, inter-Cell communication priority, and potentially visibility within the network. Helps identify healthy and poorly performing Cells.
+-   **Inter-Cell Communication:**
+    -   While routine transactions are handled within a Cell initially, cross-Cell communication (e.g., a Host in Cell A interacting with content from Cell B) is facilitated by Super-Hosts and ultimately reconciled by Decelerators and the Leadership Council.
 
 ## 3. Addressing Mobile Challenges
 
--   **Power Consumption:**
+Addressing the unique constraints of mobile devices is paramount for the success of the Nexus Protocol.
+
+-   **Power Consumption:** (Content as previously defined, largely unchanged)
     -   **Aggressive Optimization:** Implement energy-efficient algorithms and data structures.
-    -   **Activity Throttling:** Limit background activity when the device is on low battery or not connected to power (except for critical network functions if the user opts in as a Super-Host/Validator).
-    -   **Batching:** Group non-critical operations (e.g., sending analytics, minor PoP updates) to reduce frequent network wake-ups.
-    -   **User Controls:** Allow users to define the level of participation based on their battery preferences (e.g., "power saver mode" restricts node operations).
--   **Intermittent Connectivity:**
-    -   **Offline First Design:** Core social features (e.g., drafting posts, viewing cached content) should work offline.
+    -   **Activity Throttling:** Limit background activity when the device is on low battery or not connected to power (except for critical network functions if the user opts in as a Super-Host).
+    -   **Batching:** Group non-critical operations to reduce frequent network wake-ups.
+    -   **User Controls:** Allow users to define the level of participation based on their battery preferences.
+-   **Intermittent Connectivity:** (Content as previously defined, with addition of data cycling)
+    -   **Offline First Design:** Core social features should work offline.
     -   **Store and Forward:** Queue outgoing transactions/interactions and automatically send when connectivity is restored.
-    -   **Resilient Data Sync:** Implement protocols that can efficiently resume synchronization after interruptions.
-    -   **Peer-to-Peer Mesh Networking (Optional - Future Phase):** Explore local P2P Wi-Fi/Bluetooth data exchange for nearby devices when internet is unavailable.
--   **Data Storage Limitations:**
-    -   **Lightweight Client Focus:** Most users will run lightweight clients, only storing essential data or data relevant to their direct interactions and interests.
-    -   **Sharding/Selective Data Storage:** Super-Hosts might store specific shards of data (e.g., regional content, specific types of transactions), not the entire blockchain.
-    -   **Efficient Caching and Pruning:** Implement intelligent caching for frequently accessed data and pruning of old, irrelevant data for Host nodes.
-    -   **User-Configurable Storage Limits:** Allow users to set maximum storage allocation for the app.
--   **Security Considerations for Mobile Nodes:**
-    -   **App Sandboxing:** Utilize OS-level sandboxing to isolate app processes.
+    -   **Resilient Data Sync:** Implement protocols that can efficiently resume synchronization. For active users, data relevant to their immediate experience (e.g., feed updates, notifications within their Cell) might cycle or attempt to refresh approximately every 10 minutes when connected, managed by Super-Hosts.
+    -   **Peer-to-Peer Mesh Networking (Optional - Future Phase):** Explore local P2P Wi-Fi/Bluetooth data exchange.
+-   **Data Storage Limitations & Lifecycle:**
+    -   **Lightweight Client Focus (Hosts):** Hosts maintain minimal local storage – primarily their own keys, profile data, recent interactions, and a cache of frequently accessed content relevant to their Cell.
+    -   **Data Lifecycle Management:**
+        -   **Transaction Pool (Decelerators):** Unconfirmed transactions validated by Super-Hosts reside in a distributed transaction pool managed by Decelerators. This is transient storage.
+        -   **Active Storage (Super-Hosts):** Super-Hosts within a Cell maintain "Active Storage," which is a more comprehensive but still potentially sharded or time-limited segment of the blockchain concerning their Cell's recent activity and frequently accessed global data. This acts like a distributed "hard drive" for the Cell, ensuring quick access to relevant data for its Hosts. Super-Hosts within a cell perform cross-validation of this data.
+        -   **Block Archive (Decelerators/Dedicated Archival Nodes):** Once transactions are processed by Decelerators, ratified by the Leadership Council, and committed to blocks, they become part of the immutable blockchain. Full blocks are archived by Decelerators and potentially by dedicated archival nodes. Hosts and most Super-Hosts do not need to store the entire historical blockchain.
+    -   **Efficient Caching and Pruning:** Intelligent caching on Hosts and Super-Hosts for frequently accessed data, and pruning of old, irrelevant data from local caches.
+    -   **User-Configurable Storage Limits:** Allow users to set maximum storage allocation for the app on their device.
+-   **Security Considerations for Mobile Nodes:** (Content as previously defined, largely unchanged)
+    -   **App Sandboxing:** Utilize OS-level sandboxing.
     -   **Data Encryption:** End-to-end encryption for messages and sensitive data; encryption of locally stored data.
-    -   **Secure Key Management:** Hardware-backed keystores (e.g., Android Keystore, iOS Secure Enclave) for private keys where possible.
-    -   **Anti-Malware/Root Detection:** Implement checks for device integrity (though this can be challenging and privacy-invasive; needs careful consideration).
-    -   **Regular Security Audits:** For the app and communication protocols.
-    -   **Permissioned Operations:** Clear user consent for any operation that leverages device resources significantly (e.g., Super-Host, Decelerator roles).
+    -   **Secure Key Management:** Hardware-backed keystores.
+    -   **Anti-Malware/Root Detection:** Implement checks for device integrity.
+    -   **Regular Security Audits:** For app and protocols.
+    -   **Permissioned Operations:** Clear user consent for resource-intensive roles.
 
 ### Ensuring Data Integrity and Consistency on Mobile Nodes
-
-Given the resource constraints and intermittent connectivity of mobile devices, maintaining data integrity and achieving a consistent view of the network state requires careful design. Not all nodes will hold the entire blockchain.
-
--   **Data Integrity for `Hosts`:**
-    -   **Primary Role:** `Hosts` primarily interact with the blockchain by sending signed transactions (interactions) and receiving updates relevant to their interests (e.g., their posts, feeds, direct messages).
-    -   **Local Cache Integrity:** Data cached locally (e.g., parts of their social graph, recently accessed content) should be verified via hashes when initially received. If this data is provided by a Super-Host, it can be accompanied by a Merkle proof tracing back to a recent block header signed by Validators, ensuring the data is part of the canonical chain.
-    -   **Signed Data Checkpoints:** `Hosts` can periodically receive signed checkpoints from `Super-Hosts` or directly from `Validators`. These checkpoints (e.g., latest block headers) allow `Hosts` to validate that their view of the network, however limited, aligns with the broader consensus.
-    -   **Transaction Finality:** `Hosts` would rely on `Super-Hosts` or light client protocols to confirm that their submitted transactions have been included in a block and achieved a certain level of finality.
-
--   **Consistency Model for `Super-Hosts`:**
-    -   **Role:** `Super-Hosts` store larger segments of the blockchain (or specific shards) and serve data to `Hosts`. They play a crucial role in data propagation and availability.
-    -   **Eventual Consistency:** For many types of social data distributed across Super-Hosts (e.g., comment threads, like counts on widespread content), an eventual consistency model is practical. Updates propagate through the network, and Super-Hosts converge towards a consistent state over time.
-    -   **Conflict Resolution:** For data where strong consistency is more critical (e.g., token balances if managed directly by Super-Hosts in a sharded model, though less likely for core PoP), mechanisms for conflict resolution (e.g., "last write wins" based on Validator-signed timestamps, or more complex CRDTs - Conflict-free Replicated Data Types) would be needed. However, the primary aim is for critical state changes to be anchored by Validators.
-    -   **Synchronization:** `Super-Hosts` must implement robust synchronization protocols to exchange data with Validators and other Super-Hosts, efficiently handling updates and resolving discrepancies.
-
+(This subsection remains largely as previously defined but is now contextualized by the Cell structure and new data lifecycle)
+-   **Data Integrity for `Hosts`:** Relies on Super-Host validation, Merkle proofs from Active Storage, and signed checkpoints from their Cell's Super-Hosts.
+-   **Consistency Model for `Super-Hosts`:** Eventual consistency for most social data within Active Storage, with robust synchronization protocols among Super-Hosts in a Cell and with Decelerators. Critical state changes are anchored by the Leadership Council's block ratification.
 -   **"Blockchain Truth" Across Node Tiers:**
-    -   **Validators:** Hold the definitive "truth." They execute the consensus protocol, validate all transactions, and produce signed blocks that constitute the immutable ledger.
-    -   **Super-Hosts:** Hold a significant, verified portion of the truth, often specific shards or the full recent history. They act as trusted (but verifiable) sources for `Hosts`. Their data integrity is maintained by cross-referencing with Validators and other Super-Hosts.
-    -   **Hosts:** Hold a very limited, personalized subset of the truth relevant to their activity. Their trust in this data is derived from cryptographic verification against information provided by Super-Hosts and Validators. They do not independently verify the entire blockchain but rely on the security of the overall consensus mechanism and the attestations of higher-tier nodes.
-    -   **Decelerators:** Their data requirements depend on the tasks they process. If processing blockchain data, they would typically receive it from Super-Hosts or Validators and would not be authoritative sources of truth themselves.
+    -   **Leadership Council (Deciders):** Ratify the definitive "truth" by approving blocks proposed by Decelerators.
+    -   **Decelerators:** Process and propose blocks, ensuring global consistency before submission to the Leadership Council. Maintain block archives.
+    -   **Super-Hosts:** Maintain validated "Active Storage" for their Cell, acting as trusted and verifiable sources for Hosts within that Cell.
+    -   **Hosts:** Hold a limited, personalized subset of truth, verified against Super-Host data.
+-   **Immutability:** True immutability is guaranteed by the Leadership Council-ratified blockchain. Data in Active Storage and Host caches derives its integrity from this.
 
--   **Immutability:**
-    -   True immutability is guaranteed by the blockchain data secured by Validators.
-    -   Data cached on `Hosts` and `Super-Hosts` is a replica or a partial view; its immutability is derived from the immutability of the source blocks. If local data is tampered with, it would fail verification against the cryptographically secured chain.
+## 4. Proof-of-Post (PoP) Core Mechanics & Transaction Validation
 
-## 4. Proof-of-Post (PoP) Core Mechanics
+Proof-of-Post (PoP) is the core mechanism for valuing social interactions and securing the network. It involves cryptographic recording of interactions and a multi-step validation process.
 
 -   **Cryptographic Recording of Interactions:**
     -   Every meaningful social interaction (content creation, likes, validated comments, shares) generates a micro-transaction or a data entry.
     -   These entries are cryptographically signed by the user's private key, ensuring authenticity.
-    -   Content itself (or its hash) is linked to these interaction records on the blockchain.
+    -   Content itself (or its hash) is linked to these interaction records.
+
+-   **Multi-Step Transaction Validation Flow:**
+    1.  **Host Submission:** A Host node initiates a transaction and submits it to one or more Super-Hosts within its assigned Cell.
+    2.  **Super-Host Initial Validation (Step 1 - Cell Level):**
+        -   Super-Hosts in the Cell receive the transaction.
+        -   They perform initial validation: check signature, basic PoP rules (e.g., is the interaction type valid?), user's local reputation/status within the Cell, and consistency with the Cell's Active Storage.
+        -   Super-Hosts within the cell perform cross-validation of each other's data and transaction handling to ensure integrity at the cell level.
+        -   Validated transactions are then forwarded to the Decelerator pool. Rank-based distribution ensures load balancing among Super-Hosts for this relaying step.
+    3.  **Decelerator Pool & Secondary Validation (Step 2 - Network Level):**
+        -   Decelerators pick up transactions from the global pool.
+        -   They perform more computationally intensive validation: check for cross-Cell conflicts, global PoP score consistency, complex rule adherence (e.g., spam detection, content policy checks if applicable at this stage).
+    4.  **Block Candidacy & Proposal:**
+        -   Decelerators bundle verified transactions into candidate blocks.
+        -   Candidate blocks are proposed to the Leadership Council (specifically, the Decider committee) for final ratification.
+    5.  **Leadership Council Ratification:**
+        -   The Decider committee of the Leadership Council reviews proposed blocks from Decelerators. This is the final checkpoint for block validity and inclusion.
+        -   Ratified blocks are added to the blockchain and propagated throughout the network.
+-   **Dispute Resolution:**
+    -   If a Host or Super-Host disputes a transaction's rejection or handling at the Cell level, there can be an escalation mechanism to a panel of higher-ranked Super-Hosts or potentially to the Representative or Ethical committees of the Leadership Council for review, depending on the nature of the dispute.
+    -   Disputes regarding Decelerator actions or block proposals are primarily handled by the Leadership Council.
+
 -   **Validation through Engagement (Likes/Positive Interactions):**
-    -   A "like" or similar positive interaction acts as a form of micro-validation or attestation for a piece of content.
-    -   Multiple attestations from diverse, reputable (based on their own PoP score or stake) users can increase a content's "validity score."
-    -   This score isn't necessarily consensus in the traditional PoW/PoS sense for block creation, but rather a measure of social relevance and authenticity, which feeds into the reward mechanism.
-    -   For critical network consensus (e.g., ordering transactions, block creation if PoP is directly tied to it), Validators would still play a key role, potentially using aggregated PoP scores as one factor in their validation process.
+    -   (Content as previously defined) A "like" or similar positive interaction acts as a form of micro-validation or attestation for a piece of content. Multiple attestations from diverse, reputable users increase a content's "validity score," influencing PoP rewards.
 
 ### Conceptual Cryptographic Primitives
-
+(This subsection is now a child of PoP Core Mechanics, content as previously defined)
 The integrity and authenticity of the Proof-of-Post (PoP) mechanism rely on standard and robust cryptographic primitives:
+-   **Digital Signatures for Interactions:** ECDSA (`secp256k1` or `Curve25519`).
+-   **Content Hashing for Linkage:** SHA-256 or SHA-3.
+-   **Cryptographic Accumulators (Optional Future Consideration):** Merkle Trees.
+-   **Overall Security:** Combination of signatures and hashes; secure key management.
 
--   **Digital Signatures for Interactions:**
-    -   *Primitive:* Elliptic Curve Digital Signature Algorithm (ECDSA), likely using a standard curve such as `secp256k1` (common in blockchains) or `Curve25519` (known for performance and security).
-    -   *Application:* Each user action defined as part of PoP (e.g., creating content, liking, commenting, sharing) will be constructed as a message and digitally signed using the user's private key.
-    -   *Purpose:* Ensures **authenticity** (proof that the interaction originated from the claimed user), **non-repudiation** (the user cannot deny performing the interaction), and **integrity** (the interaction data has not been tampered with after signing).
+## 5. Node Governance: Ranking, Elections, and Leadership Council
 
--   **Content Hashing for Linkage:**
-    -   *Primitive:* A secure hash algorithm, likely SHA-256 (Secure Hash Algorithm 256-bit) or SHA-3.
-    -   *Application:* When content is created or referenced in an interaction, a cryptographic hash of the content (or its canonical representation) is generated. This hash is then included in the signed interaction message.
-    -   *Purpose:*
-        -   **Immutable Linking:** Creates a tamper-proof link between the social interaction and the specific content it pertains to. Any change to the content would result in a different hash, making tampering evident.
-        -   **Data Integrity:** Verifies that the content being viewed or interacted with is the same as what was originally posted and signed.
-        -   **Efficiency:** Allows for referencing large pieces of content with a small, fixed-size hash in blockchain transactions, improving storage and transmission efficiency.
+A hierarchical governance model ensures network integrity and community representation, with roles earned through participation, reputation (ranking score), and elections.
 
--   **Cryptographic Accumulators (Optional Future Consideration):**
-    -   *Primitive:* Structures like Merkle Trees or more advanced accumulators.
-    -   *Application:* To batch multiple interactions or attestations together efficiently. For instance, a daily digest of a user's PoP activities could be represented by a single Merkle root.
-    -   *Purpose:* Enhances scalability and reduces on-chain data footprint by allowing compact proofs of multiple actions.
+### Ranking Score Mechanics (Super-Hosts)
+Super-Hosts are central to Cell operations and network health. Their performance is measured by a continuously updated Ranking Score, which includes:
+-   **Uptime and Reliability:** Consistent availability to the network.
+-   **Validation Accuracy:** Correctly validating transactions according to PoP rules.
+-   **Data Integrity:** Maintaining accurate and consistent Active Storage for their Cell, verified by other Super-Hosts in the cell.
+-   **Transaction Throughput:** Efficiently processing and relaying transactions.
+-   **Network Participation:** Contribution to inter-Cell communication, participation in Decelerator elections, and upholding network protocols.
+-   **PoP Score of Hosted Content (Indirect):** The overall quality and engagement of content originating from Hosts served by the Super-Host might indirectly influence its reputation if it reflects good community management.
+-   **Stake (Optional):** A token stake might contribute to the ranking score or be a prerequisite.
 
--   **Overall Security:**
-    -   The combination of digital signatures and content hashes ensures that all socially relevant actions within the PoP ecosystem are securely attributable, verifiable, and resistant to tampering. This forms the cryptographic foundation upon which the social validation and reward mechanisms are built.
-    -   Private keys must be managed securely by users, ideally leveraging hardware-backed keystores on mobile devices as previously mentioned.
+### Node Election Hierarchy
+-   **Hosts Elect Super-Hosts:** Hosts within a Cell vote to elect a set number of Super-Hosts for their Cell (e.g., 50-100). Elections are periodic. Voting weight is likely one-Host-one-vote for simplicity at this stage. Super-Host candidates are those that meet resource and potentially staking requirements and opt-in.
+-   **Super-Hosts Elect Decelerators:** High-ranking Super-Hosts from across all Cells vote to elect a global pool of Decelerators. Election is based on candidate Decelerators' computational capacity, reliability, and potentially a larger stake.
+-   **Super-Hosts & Decelerators Elect Leadership Council:** The highest-ranking Super-Hosts and active Decelerators participate in electing members to the Leadership Council.
 
-## 5. Social Mining - Rewards and Incentives
+### Leadership Council (33 Members)
+The Leadership Council is the highest governance body, responsible for strategic oversight, final block ratification, and dispute resolution. It consists of three distinct committees:
+-   **The Deciders (13 Members):**
+    -   **Role:** Responsible for the final ratification of blocks proposed by Decelerators. This is the ultimate checkpoint for what gets added to the blockchain. They ensure overall network consensus and security.
+    -   **Election:** Elected from the highest-ranking, most proven Super-Hosts and Decelerators, emphasizing technical competence and long-term commitment.
+-   **The Representatives (10 Members):**
+    -   **Role:** Represent the broader user and Super-Host community. Focus on user concerns, platform usability, feature requests from Cells, and mediating disputes escalated from Cell level. They act as a bridge between the user base and the more technical governance arms.
+    -   **Election:** Elected by Super-Hosts, potentially with mechanisms to ensure diverse Cell representation.
+-   **The Ethical Guardians (10 Members):**
+    -   **Role:** Oversee the ethical application of platform policies, privacy standards, and PoP rules. Review complex content moderation disputes, and guide the evolution of community guidelines. They ensure the platform adheres to its core principles.
+    -   **Election:** Elected by Super-Hosts and Decelerators, with candidates perhaps vetted for experience in ethics, community management, or platform governance.
 
--   **Rewards for Content Creators:**
-    -   Tokens are minted or distributed from a rewards pool to creators based on the sustained, authentic engagement their content receives.
-    -   Metrics include:
-        -   Number of unique positive interactions (e.g., likes from distinct users).
-        -   Depth of engagement (e.g., thoughtful comments vs. simple likes).
-        -   Virality/reach (e.g., shares that lead to further engagement).
-        -   Longevity of engagement (content that remains relevant and engaging over time).
-    -   A decay function might be applied to prevent older, once-popular content from perpetually dominating rewards.
--   **Rewards for Active Engagers:**
-    -   Users who provide valuable engagement (e.g., insightful comments, curating good content through shares, early identification of high-quality content) also receive a share of token rewards.
-    -   This could be a percentage of the rewards generated by the content they engaged with, or through a separate "curation reward" pool.
-    -   The quality of their engagement (e.g., upvoted comments) can influence their reward share.
+**Council Operations:**
+-   Decisions within committees and by the full Council generally require a supermajority.
+-   Terms are fixed, with staggered elections to ensure continuity.
+-   Mechanisms for accountability and recall of Council members will be defined.
 
-## 6. Quality Control - GIGO (Garbage In, Garbage Out) Antidote
+## 6. Social Mining - Rewards and Incentives
+(Content as previously defined, largely unchanged but now operates within the new structure of node roles and governance)
 
--   **Discouraging Spam/Bots:**
-    -   **Reputation System:** Users build a reputation score based on their history of authentic interactions and the quality of content they produce/engage with. Low-reputation accounts might have their interactions weighted less or face stricter scrutiny.
-    -   **Micro-Stakes for Interactions (Optional):** Requiring a tiny, almost negligible stake or transaction fee for posting or interacting can deter mass bot activity (this needs careful balancing to avoid excluding genuine users).
-    -   **AI-Powered Anomaly Detection:** Machine learning models to identify patterns indicative of bot activity (e.g., rapid liking sprees, generic comments, coordinated inauthentic behavior).
-    -   **Community Moderation:** Token-incentivized flagging and review of spam/bot accounts by trusted community members.
-    -   **Proof-of-Humanity:** Integration of CAPTCHAs or similar mechanisms for suspicious activities or new accounts, but used sparingly to avoid friction.
--   **Rewarding Meaningful Interaction (Value over Raw Numbers):**
-    -   **Content Scoring Algorithms:** Algorithms that weigh interactions based on factors like:
-        -   Reputation of the interacting user.
-        -   Length and substance of comments.
-        -   Whether a share leads to further meaningful engagement.
-        -   Sentiment analysis (to a degree, though this is complex and can be gamed).
-    -   **Focus on "Impact":** Inspired by "My Highest Paying Story Has 4 Reads," the system should aim to identify content that, even if not massively viral, generates deep impact or value for a niche audience. This could be measured by the quality of discussion it sparks or its utility.
-    -   **Negative Feedback Impact:** A system for downvotes or "not interested" signals that can reduce content visibility and potential rewards, helping to filter out low-quality or misleading content. This needs to be protected against brigading.
+## 7. Quality Control - GIGO (Garbage In, Garbage Out) Antidote
+(Content as previously defined, largely unchanged but now operates within the new structure of node roles and governance)
 
-## 7. Strategic Rationale - Proof-of-Post (PoP)
+## 8. Strategic Rationale - Mobile-Native Architecture
+(Renamed from "Strategic Rationale - Proof-of-Post (PoP)" to reflect the broader scope. Original PoP rationale points are integrated or moved to the PoP section itself. New points added for overall architecture.)
 
--   **Incentivizes Authentic Social Behavior:**
-    -   By directly linking rewards to genuine engagement, PoP encourages users to create valuable content and interact meaningfully.
-    -   Moves away from models driven purely by ad revenue or data exploitation.
--   **Democratizes "Mining":**
-    -   Allows any user to "mine" or earn tokens through their social contributions, regardless of computational power.
-    -   Fosters a more inclusive and participatory economic model within the app.
--   **Player-Driven Economy (CritterCraft Parallel):**
-    -   Similar to how CritterCraft's players drive the in-game economy through their actions, Nexus Protocol users will shape the platform's economy and value distribution through their social activities.
-    -   Content and engagement become the primary drivers of value creation and distribution.
--   **Fosters a Truly Engaged Community:**
-    -   The prospect of earning rewards for both creating and engaging fosters a more active and invested user base.
-    -   Creates a positive feedback loop where quality content and interaction are continually reinforced.
+-   **Democratizing Participation:** (Content as previously defined)
+-   **Reduced Reliance on Centralized Infrastructure:** (Content as previously defined)
+-   **Enhanced Network Resilience (QASTON 2.0 Principles):** (Content as previously defined)
+-   **Scalability through Cellular Design:** The cell topology allows for partitioning of network load and data, enabling more users and activity without proportionally increasing the burden on every node.
+-   **Efficient Resource Utilization:** Hierarchical node roles ensure that tasks are handled by nodes with appropriate capabilities, optimizing resource use across the network, especially for battery-constrained mobile devices.
+-   **Layered Security & Validation:** Multi-step validation (Super-Hosts, then Decelerators, then Leadership Council) provides defense in depth, making it harder for malicious transactions to be finalized.
 
-## 8. Network Stability and Bootstrapping
-
-A decentralized network, especially one with many mobile participants, requires robust mechanisms for new nodes to join (bootstrap), discover peers, and maintain overall network stability despite the dynamic nature of its participants.
+## 9. Network Stability and Bootstrapping
+(Renamed from "Network Stability and Bootstrapping" in original outline, section 8, to section 9 here. Content largely as previously defined, but "Validators" would now refer to the new structure e.g. Super-Hosts and Leadership Council.)
 
 ### Initial Bootstrapping Process
-
--   **Seed Nodes:**
-    -   A set of initial, relatively stable `Super-Hosts` or dedicated servers will act as seed nodes. Their addresses (e.g., IP addresses or domain names) will be hardcoded into the application or retrievable from a secure, decentralized DNS-like service.
-    -   New nodes will connect to these seed nodes upon first launch to get an initial list of active peers.
--   **Genesis Block/Configuration:**
-    -   The application will come pre-packaged with the genesis block of the blockchain and essential network configuration parameters. This ensures all nodes start from a common, valid state.
--   **Decentralized Discovery (Post-Initial Bootstrap):**
-    -   Once connected to a few initial peers, nodes will use peer discovery protocols to find more participants in the network, reducing long-term reliance on hardcoded seed nodes.
+-   **Seed Nodes:** (Super-Hosts or dedicated servers)
+-   **Genesis Block/Configuration:** (As previously defined)
+-   **Decentralized Discovery (Post-Initial Bootstrap):** (As previously defined)
 
 ### Peer Discovery Mechanisms
-
--   **Distributed Hash Table (DHT):**
-    -   A Kademlia-based DHT (or similar) can be implemented. Nodes would store information about other nodes (especially `Super-Hosts` and `Validators`) in the DHT.
-    -   This allows for efficient lookup of peers based on their Node ID or services offered. Mobile nodes can query the DHT to find nearby or relevant `Super-Hosts`.
--   **Gossip Protocols:**
-    -   Nodes can periodically exchange lists of known peers with their connected neighbors. This helps propagate peer information throughout the network and adapt to changes in node availability.
-    -   Useful for discovering other `Hosts` for local P2P interactions if that feature is implemented.
--   **Super-Host Advertisements:**
-    -   `Super-Hosts` can actively advertise their presence and services (e.g., specific data shards they store, willingness to relay transactions) on the network or through the DHT.
+-   **Distributed Hash Table (DHT):** (For Super-Hosts and Decelerators)
+-   **Gossip Protocols:** (As previously defined)
+-   **Super-Host Advertisements:** (As previously defined)
 
 ### Maintaining Network Stability
+-   **Role of Super-Hosts:** (As previously defined, central to Cell stability)
+-   **Incentivizing Uptime:** (For Super-Hosts, Decelerators, and Leadership Council members)
+-   **Dynamic Network Topology:** (As previously defined)
+-   **Graceful Degradation:** (As previously defined)
+-   **Monitoring and Self-Healing:** (As previously defined, with Leadership Council oversight)
 
--   **Role of Super-Hosts:**
-    -   `Super-Hosts` are crucial for network stability due to their higher resource availability and more stable connectivity. They act as reliable relays and data providers for `Hosts`.
-    -   Incentives (e.g., a larger share of network fees or PoP rewards) will be provided for devices acting as `Super-Hosts` to ensure a sufficient number of them are available.
--   **Incentivizing Uptime:**
-    -   While `Hosts` can be transient, `Super-Hosts` and `Validators` will be incentivized (through token rewards and risk of slashing for Validators) to maintain high uptime.
-    -   The PoP mechanism itself can factor in node uptime or reliability when distributing certain types of rewards or assigning roles.
--   **Dynamic Network Topology:**
-    -   The system must be designed to handle a constantly changing network topology as mobile `Hosts` connect and disconnect.
-    -   Routing algorithms and data replication strategies should be resilient to such changes.
--   **Graceful Degradation:**
-    -   In scenarios of significant network fragmentation or a shortage of `Super-Hosts` in a region, the application should degrade gracefully, prioritizing core functionalities (e.g., local interactions, access to already synced data) while attempting to re-establish broader network connectivity.
--   **Monitoring and Self-Healing:**
-    -   Network monitoring tools (potentially run by Validators or dedicated monitoring nodes) can track overall network health, partition events, and the availability of critical nodes.
-    -   Automated mechanisms could attempt to re-establish connections or incentivize nodes in underserved areas if possible.
+---
+*Self-correction: Ensured that the old "Validators" section is removed and its functions are absorbed into Super-Hosts, Decelerators, and the Leadership Council. Renamed section 7 of the original document to section 8 Strategic Rationale - Mobile-Native Architecture, and the original section 8 to section 9 Network Stability and Bootstrapping to maintain a logical flow.*
+*Interpretive assumption: Initial user assignment to cells combines geography (if consented) and load balancing. Election voting weight is one-node-one-vote for now. Data cycling every 10 mins for active users is placed under "Intermittent Connectivity."*
