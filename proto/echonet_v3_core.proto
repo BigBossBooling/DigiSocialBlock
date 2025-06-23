@@ -1,0 +1,132 @@
+syntax = "proto3";
+
+package echonet.core.v1;
+
+// Option for Go package if generating Go code
+// option go_package = "github.com/NexusProtocol/echonet/core/v1;corev1";
+
+// -----------------------------------------------------------------------------
+// Enum Definitions
+// -----------------------------------------------------------------------------
+
+enum ContentType {
+  CONTENT_TYPE_UNDEFINED = 0;
+  CONTENT_TYPE_MICRO_POST = 1;
+  CONTENT_TYPE_ARTICLE = 2;
+  CONTENT_TYPE_IMAGE = 3;
+  CONTENT_TYPE_VIDEO = 4;
+  CONTENT_TYPE_AUDIO = 5;
+  CONTENT_TYPE_COMMENT = 6;
+  CONTENT_TYPE_SHARE = 7;
+  CONTENT_TYPE_PROFILE_UPDATE = 8;
+}
+
+enum LifecycleStatus {
+  LIFECYCLE_STATUS_UNDEFINED = 0;
+  LIFECYCLE_STATUS_ACTIVE = 1;
+  LIFECYCLE_STATUS_MODERATED_PENDING_REVIEW = 2;
+  LIFECYCLE_STATUS_REFERENCE_REMOVED = 3;
+  LIFECYCLE_STATUS_ARCHIVED = 4;
+}
+
+enum UserStatus {
+  USER_STATUS_UNDEFINED = 0;
+  USER_STATUS_ACTIVE = 1;
+  USER_STATUS_SUSPENDED_TEMPORARY = 2;
+  USER_STATUS_BANNED = 3;
+}
+
+enum InteractionType {
+  INTERACTION_TYPE_UNDEFINED = 0;
+  INTERACTION_TYPE_LIKE_CONTENT = 1;
+  INTERACTION_TYPE_CREATE_COMMENT_REF = 2;
+  INTERACTION_TYPE_CREATE_SHARE_REF = 3;
+  INTERACTION_TYPE_VOTE_ON_GOVERNANCE_PROPOSAL = 4;
+  INTERACTION_TYPE_FOLLOW_USER = 5;
+  INTERACTION_TYPE_CREATE_CONTENT_METADATA_REF = 6;
+}
+
+enum AttestationType {
+  ATTESTATION_TYPE_UNDEFINED = 0;
+  ATTESTATION_TYPE_CONTENT_EXISTENCE_CONFIRMED = 1;
+  ATTESTATION_TYPE_CONTENT_MEETS_POLICY_X = 2;
+  ATTESTATION_TYPE_EVENT_TIMESTAMP_CONFIRMED = 3;
+}
+
+// -----------------------------------------------------------------------------
+// Core Data Structure Definitions
+// -----------------------------------------------------------------------------
+
+message NexusContentObjectV1 {
+  // Core Identity & Linkage
+  string content_id_hash = 1;
+  string author_did = 2;
+  uint64 creation_timestamp = 3;
+  string initial_content_payload_hash = 4;
+  optional string current_content_payload_hash = 5;
+  optional string external_storage_ref = 6; // Recommended to be present for most types
+
+  // Metadata & Classification
+  optional string title = 7;
+  optional string metadata_hash = 8; // Hash of off-chain/DDS stored metadata object
+  ContentType content_type = 9;
+  optional string parent_content_id_hash = 10;
+
+  // PoP & Governance Related
+  optional string pop_score_reference_id = 11; // Could be the content_id_hash itself if state is co-located
+  optional uint64 last_pop_update_timestamp = 12;
+  LifecycleStatus status = 13;
+
+  // Versioning & Updates
+  uint32 version = 14;
+  optional string previous_version_hash = 15;
+
+  // Signatures & Proofs
+  bytes author_signature = 16; // Signature of author_did over content_id_hash or key identifying fields
+}
+
+message NexusUserObjectV1 {
+  // Core Identity
+  string user_did = 1; // Primary Identifier
+  optional string username_hash = 2; // Hash of a chosen, unique username
+  uint64 registration_timestamp = 3;
+
+  // Profile Data
+  optional string profile_data_hash = 4; // Hash of off-chain/DDS profile data
+  optional string profile_data_external_ref = 5; // CID/Arweave ID if profile data is on DSN
+
+  // PoP & Governance Related
+  optional string pop_reputation_reference_id = 6; // Could be user_did if state is co-located
+
+  // Status
+  UserStatus status = 7;
+}
+
+message NexusInteractionRecordV1 {
+  // Core Interaction Details
+  string interaction_id_hash = 1; // Hash of key fields to ensure uniqueness
+  string actor_did = 2;
+  InteractionType interaction_type = 3;
+  string target_object_id_hash = 4; // e.g., content_id_hash, user_did, proposal_id
+  uint64 timestamp = 5;
+  optional bytes payload_hash = 6; // e.g., hash of comment text (if comment itself is NexusContentObject)
+
+  // Context & Validation
+  optional string cell_id_origin = 7;
+
+  // Signature
+  bytes actor_signature = 8; // Signature of actor_did over key fields
+}
+
+message WitnessProofV1 {
+  // Core Proof Details
+  string proof_id_hash = 1; // Hash of key fields
+  string attested_object_id_hash = 2; // e.g., content_id_hash
+  string witness_did = 3;
+  uint64 timestamp = 4; // Witness's observation timestamp
+  AttestationType attestation_type = 5;
+  optional bytes proof_payload_hash = 6; // Hash of any additional data supporting the proof
+
+  // Witness Context & Signature
+  bytes witness_signature = 7; // Signature of witness_did over key fields
+}
