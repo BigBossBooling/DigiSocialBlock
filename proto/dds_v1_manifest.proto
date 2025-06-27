@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package dds.v1.manifest;
+
+option go_package = "github.com/DigiSocialBlock/nexus-protocol/pkg/dds/manifest/types";
+
+// ContentManifestV1 defines the structure for a manifest that lists all
+// content chunks and the hash of the original, unchunked content.
+// This manifest itself is identified by its own CID.
+message ContentManifestV1 {
+  // A list of Content IDs (CIDs) for each chunk of the original content, in order.
+  repeated string chunk_cids = 1;
+
+  // The SHA-256 hash of the original, complete content before it was chunked.
+  // This is used to verify the integrity of the reassembled content.
+  // Represented as a hex string or Base58BTC string (to be consistent with CIDs).
+  // For now, let's assume hex string for clarity, can be refined.
+  string original_content_hash = 2;
+
+  // Optional: Total size of the original content in bytes.
+  // Useful for pre-allocation or progress indication during retrieval.
+  int64 original_content_size_bytes = 3;
+
+  // Optional: MIME type of the original content.
+  string original_content_mime_type = 4;
+
+  // Optional: Filename of the original content, if applicable.
+  string original_filename = 5;
+
+  // Optional: Timestamp (Unix nano) when this manifest was created.
+  int64 manifest_created_at = 6;
+
+  // Optional: Custom metadata for the manifest or content.
+  map<string, string> custom_metadata = 7;
+}

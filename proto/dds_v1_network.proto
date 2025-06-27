@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package dds.v1.network;
+
+option go_package = "github.com/DigiSocialBlock/nexus-protocol/pkg/dds/network/types";
+
+// Generic Error structure for responses
+message Error {
+  int32 code = 1; // Application-specific error code
+  string message = 2; // Human-readable error message
+}
+
+// StoreChunkRequest asks a peer to store a chunk.
+message StoreChunkRequest {
+  string chunk_cid = 1; // CID of the chunk to store
+  bytes chunk_data = 2; // The actual chunk data
+}
+
+// StoreChunkResponse is the response to a StoreChunkRequest.
+message StoreChunkResponse {
+  bool success = 1; // True if the chunk was stored successfully
+  Error error = 2;  // Error details if success is false
+}
+
+// RetrieveChunkRequest asks a peer for a specific chunk.
+message RetrieveChunkRequest {
+  string chunk_cid = 1; // CID of the chunk to retrieve
+}
+
+// RetrieveChunkResponse is the response to a RetrieveChunkRequest.
+message RetrieveChunkResponse {
+  bytes chunk_data = 1; // The retrieved chunk data (only if success is true)
+  bool success = 2;     // True if the chunk was retrieved successfully
+  Error error = 3;      // Error details if success is false (e.g., chunk not found)
+}
+
+// FindProvidersRequest asks the DHT (or a peer) for providers of a given CID.
+message FindProvidersRequest {
+  string cid = 1; // The CID (can be a chunk_cid or manifest_cid) to find providers for
+}
+
+// FindProvidersResponse contains a list of Peer IDs that provide the requested CID.
+// Peer IDs are typically libp2p Peer IDs in string format.
+message FindProvidersResponse {
+  repeated string provider_peer_ids = 1; // List of Peer IDs (as strings)
+  Error error = 2;                       // Error details if the query failed
+}
+
+// ReplicationInstruction tells a peer to fetch and store a chunk from another source
+// (or implies the sender will provide it if source_peer_id is empty).
+message ReplicationInstruction {
+  string chunk_cid = 1;          // CID of the chunk to replicate
+  string source_peer_id = 2;     // Optional: Peer ID of a known provider for this chunk
+  // Additional hints like source addresses could be included if not relying purely on DHT for the source.
+}
+
+// ReplicationResponse is the response to a ReplicationInstruction.
+message ReplicationResponse {
+  bool success = 1; // True if the peer accepted the replication task (doesn't mean immediate completion)
+  Error error = 2;  // Error details if the instruction was rejected
+}
