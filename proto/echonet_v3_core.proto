@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package echonet.v3.core;
+
+option go_package = "github.com/DigiSocialBlock/nexus-protocol/pkg/echonet/core/types";
+
+// Enum for Content Types
+enum ContentType {
+  CONTENT_TYPE_UNSPECIFIED = 0;
+  CONTENT_TYPE_POST = 1;
+  CONTENT_TYPE_ARTICLE = 2;
+  CONTENT_TYPE_COMMENT = 3;
+  CONTENT_TYPE_SHARE = 4; // A reshare of existing content
+}
+
+// Enum for Interaction Types
+enum InteractionType {
+  INTERACTION_TYPE_UNSPECIFIED = 0;
+  INTERACTION_TYPE_LIKE = 1;
+  INTERACTION_TYPE_VIEW = 2; // Explicit view, e.g., opening an article
+  INTERACTION_TYPE_HIDE = 3; // User hides content from their feed
+  INTERACTION_TYPE_REPORT = 4; // User reports content
+}
+
+// Enum for Witness Proof Status
+enum WitnessProofStatus {
+  WITNESS_PROOF_STATUS_UNSPECIFIED = 0;
+  WITNESS_PROOF_STATUS_PENDING = 1; // Proof is awaiting verification
+  WITNESS_PROOF_STATUS_VERIFIED = 2; // Proof has been successfully verified
+  WITNESS_PROOF_STATUS_REJECTED = 3; // Proof was found to be invalid
+}
+
+// NexusContentObjectV1 represents a piece of content within the Nexus Protocol.
+message NexusContentObjectV1 {
+  string content_id = 1; // Unique identifier for the content (e.g., SHA-256 hash of canonical form)
+  string author_did = 2; // DID of the content creator
+  ContentType content_type = 3; // Type of content (e.g., post, article)
+  string content_body = 4; // The actual content data (e.g., text, link to media)
+  repeated string tags = 5; // Keywords or tags associated with the content
+  int64 created_at_client = 6; // Timestamp (Unix nano) when the content was created, asserted by the client
+  int64 created_at_network = 7; // Timestamp (Unix nano) when the content was first observed by the network
+  string previous_version_id = 8; // Optional: ID of a previous version if this is an update
+  string license_uri = 9; // Optional: URI pointing to the license terms for this content
+  map<string, string> custom_metadata = 10; // Optional: For additional, non-standardized metadata
+}
+
+// NexusUserObjectV1 represents a user profile within the Nexus Protocol.
+message NexusUserObjectV1 {
+  string user_did = 1; // DID of the user, primary key
+  string display_name = 2; // User's chosen display name
+  string bio = 3; // Short biography or description
+  string avatar_uri = 4; // URI pointing to the user's avatar image
+  string banner_uri = 5; // URI pointing to the user's profile banner image
+  int64 created_at = 6; // Timestamp (Unix nano) when the user profile was created
+  int64 updated_at = 7; // Timestamp (Unix nano) when the user profile was last updated
+  map<string, string> profile_links = 8; // Optional: Links to external profiles (e.g., website, other social media)
+  bool is_verified = 9; // Flag indicating if the user account is verified (e.g., by the platform or community process)
+}
+
+// NexusInteractionRecordV1 represents a specific interaction a user has with a piece of content.
+message NexusInteractionRecordV1 {
+  string interaction_id = 1; // Unique identifier for this interaction
+  string user_did = 2; // DID of the user performing the interaction
+  string target_content_id = 3; // ID of the content being interacted with
+  InteractionType interaction_type = 4; // Type of interaction (e.g., like, comment, view)
+  string interaction_data = 5; // Optional: Additional data related to the interaction (e.g., comment text)
+  int64 created_at_client = 6; // Timestamp (Unix nano) of the interaction, asserted by the client
+  int64 created_at_network = 7; // Timestamp (Unix nano) when the interaction was first observed by the network
+  string reference_interaction_id = 8; // Optional: ID of a parent interaction (e.g., if this is a reply to a comment)
+}
+
+// WitnessProofV1 represents a proof submitted by a Witness Node.
+message WitnessProofV1 {
+  string proof_id = 1; // Unique identifier for this proof
+  string witness_did = 2; // DID of the Witness Node submitting the proof
+  string observed_content_id = 3; // ID of the content object being witnessed
+  string observed_content_hash = 4; // Hash of the content as observed by the witness
+  int64 observed_at_witness = 5; // Timestamp (Unix nano) when the witness observed the content
+  string signature = 6; // Cryptographic signature from the witness over the proof data
+  WitnessProofStatus status = 7; // Current status of this proof
+  int64 verified_at = 8; // Optional: Timestamp (Unix nano) when this proof was verified
+  string verifier_did = 9; // Optional: DID of the Verifier Node that processed this proof
+}
