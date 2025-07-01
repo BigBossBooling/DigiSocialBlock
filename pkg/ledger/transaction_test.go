@@ -2,15 +2,23 @@
 package ledger
 
 import (
+	"crypto/ecdsa"
+	"encoding/hex"
 	"testing"
 	"time"
 
+	"digisocialblock/pkg/identity" // Import identity package
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewTransaction(t *testing.T) {
-	sender := "testSenderPublicKey"
+	// For sender, we now need a valid public key address string
+	wallet, err := identity.NewWallet()
+	require.NoError(t, err)
+	senderAddr, err := wallet.GetAddress()
+	require.NoError(t, err)
+	sender := senderAddr
 	txType := TxTypePostCreated
 	payload := []byte("This is a test post payload.")
 
